@@ -1,3 +1,4 @@
+import com.google.gson.JsonParser;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -42,13 +43,22 @@ public class ElasticSearchConsumer {
             ConsumerRecords<String, String> records = kafkaConsumer.poll(Duration.ofMillis(100));
 
             for(ConsumerRecord<String, String> record: records) {
+                // You have 2 strategies to create an id
+                // Option 1: Kafka Generic ID
+                //String id = record.topic() + "_" + record.partition() + "_" + record.offset();
+
+                // Option 2: Use a specific ID already defined in the data you're consuming. Preferred!
+                String id = extractIdFromTweet(record.value());
+
                 // This will fail if there's no 'twitter' index created. Make sure to create it in ElasticSearch
-                IndexRequest indexRequest = new IndexRequest("twitter", "tweets")
+                IndexRequest indexRequest = new IndexRequest(
+                        "twitter",
+                        "tweets",
+                        id) // This is to make our consumer idempotent
                         .source(record.value(), XContentType.JSON);
 
                 IndexResponse indexResponse = client.index(indexRequest, RequestOptions.DEFAULT);
-                String id = indexResponse.getId();
-                LOGGER.info(id);
+                LOGGER.info(indexResponse.getId());
 
                 try {
                     Thread.sleep(1000); // Introducing a small delay
@@ -59,6 +69,10 @@ public class ElasticSearchConsumer {
         }
 
         //client.close();
+    }
+
+    private static String extractIdFromTweet(String tweetJson) {
+        return JsonParser.parseString(tweetJson).getAsJsonObject().get("id_str").getAsString();
     }
 
     public static RestHighLevelClient createClient(String hostname, String username, String password) {
