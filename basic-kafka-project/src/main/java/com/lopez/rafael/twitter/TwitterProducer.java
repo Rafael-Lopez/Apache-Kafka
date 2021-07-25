@@ -23,22 +23,22 @@ import java.util.concurrent.TimeUnit;
 
 public class TwitterProducer {
     private static final Logger logger = LoggerFactory.getLogger(TwitterProducer.class);
-    private static final String CONSUMER_KEY = "KITJD28e0A2eSezt0yI3JbIbu";
-    private static final String CONSUMER_SECRET = "0ihzDhrGIFb8IgaXg5AmMsC4wDpE6zUZJQgLLIolLYZuiPtWIf";
-    private static final String TOKEN = "704487325-j5fJQYH23TWLh163kppm3ea657fRRJWZe96Wr90f";
-    private static final String SECRET = "JwQ5PRbTRL6edjxAwpR40CUDZfxquBuKMDfF0Sb2mseEd";
-
     private static List<String> terms = Lists.newArrayList("kafka");
 
     public static void main(String[] args) {
-        new TwitterProducer().run();
+        String consumerKey = System.getProperty("consumerKey");
+        String consumerSecret = System.getProperty("consumerSecret");
+        String token = System.getProperty("token");
+        String secret = System.getProperty("secret");
+
+        new TwitterProducer().run(consumerKey, consumerSecret, token, secret);
     }
 
-    public void run() {
+    public void run(String consumerKey, String consumerSecret, String token, String secret) {
         // Set up your blocking queues: Be sure to size these properly based on expected TPS of your stream
         BlockingQueue<String> msgQueue = new LinkedBlockingQueue(100000);
         // Create Twitter Client
-        Client client = createTwitterClient(msgQueue);
+        Client client = createTwitterClient(consumerKey, consumerSecret, token, secret, msgQueue);
         // Attempts to establish a connection.
         client.connect();
 
@@ -85,7 +85,8 @@ public class TwitterProducer {
         logger.info("End of application");
     }
 
-    public Client createTwitterClient(BlockingQueue<String> msgQueue) {
+    public Client createTwitterClient( String consumerKey, String consumerSecret, String token, String secret,
+                                       BlockingQueue<String> msgQueue) {
         /** Declare the host you want to connect to, the endpoint, and authentication (basic auth or oauth) */
         Hosts hosebirdHosts = new HttpHosts(Constants.STREAM_HOST);
         StatusesFilterEndpoint hosebirdEndpoint = new StatusesFilterEndpoint();
@@ -93,7 +94,7 @@ public class TwitterProducer {
         hosebirdEndpoint.trackTerms(terms);
 
         // These secrets should be read from a config file
-        Authentication hosebirdAuth = new OAuth1(CONSUMER_KEY, CONSUMER_SECRET, TOKEN, SECRET);
+        Authentication hosebirdAuth = new OAuth1(consumerKey, consumerSecret, token, secret);
 
         // Create Client
         ClientBuilder builder = new ClientBuilder()
