@@ -25,8 +25,6 @@ public class ElasticSearchConsumer {
         String username = System.getProperty("username");
         String password = System.getProperty("password");
 
-        System.out.println(hostname);
-
         RestHighLevelClient client = createClient(hostname, username, password);
         String jsonString = "{\"foo\": \"bar\"}";
 
