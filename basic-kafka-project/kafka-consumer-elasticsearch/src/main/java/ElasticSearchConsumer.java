@@ -41,6 +41,7 @@ public class ElasticSearchConsumer {
         while(true) {
             // When you poll. you need to give it a timout for how long it should try to get data
             ConsumerRecords<String, String> records = kafkaConsumer.poll(Duration.ofMillis(100));
+            LOGGER.info("Received: " + records.count() + " records");
 
             for(ConsumerRecord<String, String> record: records) {
                 // You have 2 strategies to create an id
@@ -61,10 +62,19 @@ public class ElasticSearchConsumer {
                 LOGGER.info(indexResponse.getId());
 
                 try {
-                    Thread.sleep(1000); // Introducing a small delay
+                    Thread.sleep(10); // Introducing a small delay
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
+            }
+            LOGGER.info("Committing offsets...");
+            kafkaConsumer.commitSync();
+            LOGGER.info("Offsets have been committed");
+
+            try {
+                Thread.sleep(1000); // Introducing a small delay
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
 
@@ -101,6 +111,8 @@ public class ElasticSearchConsumer {
         properties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        properties.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false"); // Disables autocommit of offsets
+        properties.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "10"); // Max number of records per poll
 
         // Create Consumer
         KafkaConsumer<String, String> consumer = new KafkaConsumer(properties);
